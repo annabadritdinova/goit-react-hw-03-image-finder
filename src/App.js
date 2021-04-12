@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 import { ToastContainer } from 'react-toastify';
-
 import imagesServices from './services/imagesServices';
 import Searchbar from './components/Searchbar';
 import ImageGallery from './components/ImageGallery';
@@ -8,7 +7,12 @@ import Button from './components/Button';
 import Loader from './components/Loader';
 
 class App extends Component {
-  state = {
+  constructor(props){
+    super(props) 
+    this.listRef = React.createRef();
+  }
+
+    state = {
     imageName: '',
     images: [],
     currentPage: 1,
@@ -16,9 +20,26 @@ class App extends Component {
     error: null,
   };
 
-  componentDidUpdate(prevProps, prevState) {
+  getSnapshotBeforeUpdate(prevProps, prevState) {
+    if (
+      prevState.images.length < this.state.images.length &&
+      this.state.currentPage > 2
+    ) {
+      const list = this.listRef.current +1; 
+      return list.scrollHeight - list.scrollTop;
+    }
+    return null;
+  }
+
+  componentDidUpdate(prevProps, prevState, snapshot) {
     if (prevState.imageName !== this.state.imageName) {
       this.fetchImages();
+    }
+    if (snapshot !== null && this.state.currentPage > 2) {
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }
 
@@ -35,20 +56,21 @@ class App extends Component {
     const { imageName, currentPage } = this.state;
     const options = { imageName, currentPage };
 
+    
+
     this.setState({ isLoading: true });
 
     imagesServices
       .fetchImagesAPI(options)
       .then(images => {
-        this.setState(prevState => ({
+        this.setState(prevState => ({ 
           images: [...prevState.images, ...images],
           currentPage: prevState.currentPage + 1,
+          
         }));
-        window.scrollTo({
-          top: document.documentElement.scrollHeight,
-          behavior: 'smooth',
-        });
+        
       })
+      
       .catch(error => this.setState({ error }))
       .finally(() => this.setState({ isLoading: false }));
   };
